@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "1051677162477",
+    "firebase_url": "https://katzirproject-default-rtdb.firebaseio.com",
+    "project_id": "katzirproject",
+    "storage_bucket": "katzirproject.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1051677162477:android:d9d1b52a261c4d566e85e4",
+        "android_client_info": {
+          "package_name": "com.example.mysecondclasshib"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD5LFcozzCgwJsS2lLWi4wN-7tHBi3CCMA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
