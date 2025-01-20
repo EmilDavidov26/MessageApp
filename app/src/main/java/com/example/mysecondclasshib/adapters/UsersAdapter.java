@@ -1,6 +1,7 @@
 package com.example.mysecondclasshib.adapters;
 
 import android.content.Context;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -47,8 +48,24 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
         holder.username.setText(user.getUsername());
 
         // Set description
-        String description = user.getDescription();
-        if (description != null && !description.trim().isEmpty()) {
+        StringBuilder descriptionBuilder = new StringBuilder();
+
+        // Add bio if exists
+        if (user.getDescription() != null && !user.getDescription().trim().isEmpty()) {
+            descriptionBuilder.append(user.getDescription());
+        }
+
+        // Add favorite games if exist
+        List<String> favGames = user.getFavGames();
+        if (favGames != null && !favGames.isEmpty()) {
+            if (descriptionBuilder.length() > 0) {
+                descriptionBuilder.append("\n");
+            }
+            descriptionBuilder.append("🎮 ").append(TextUtils.join(", ", favGames));
+        }
+
+        String description = descriptionBuilder.toString();
+        if (!description.isEmpty()) {
             holder.description.setVisibility(View.VISIBLE);
             holder.description.setText(description);
         } else {

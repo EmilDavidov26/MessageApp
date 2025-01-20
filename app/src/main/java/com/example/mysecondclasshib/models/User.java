@@ -1,19 +1,27 @@
 package com.example.mysecondclasshib.models;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class User {
     private String id;
     private String username;
     private String email;
     private String phone;
     private String imageUrl;
-    private String description;  // Added description field
+    private String description;
+
+    private List<String> favGames;
+
     private boolean online;
     private String lastSeen;
 
     // Required empty constructor for Firebase
     public User(String userId, String username) {
     }
-    public User(){}
+    public User(){
+        this.favGames = new ArrayList<>();
+    }
 
     // Constructor with id, username, and email (used during user registration)
     public User(String id, String username, String email) {
@@ -22,7 +30,8 @@ public class User {
         this.email = email != null ? email : "";
         this.phone = "";
         this.imageUrl = "";
-        this.description = "";  // Initialize description as empty string
+        this.description = "";
+        this.favGames = new ArrayList<>();
         this.online = false;
         this.lastSeen = String.valueOf(System.currentTimeMillis());
     }
@@ -91,5 +100,12 @@ public class User {
 
     public void setLastSeen(String lastSeen) {
         this.lastSeen = lastSeen != null ? lastSeen : "";
+    }
+    public List<String> getFavGames() {
+        return favGames != null ? favGames : new ArrayList<>();
+    }
+
+    public void setFavGames(List<String> favGames) {
+        this.favGames = favGames != null ? favGames : new ArrayList<>();
     }
 }

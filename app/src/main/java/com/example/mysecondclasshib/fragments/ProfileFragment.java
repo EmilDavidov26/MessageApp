@@ -2,6 +2,8 @@ package com.example.mysecondclasshib.fragments;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -22,6 +24,8 @@ import androidx.navigation.Navigation;
 import com.bumptech.glide.Glide;
 import com.example.mysecondclasshib.R;
 import com.example.mysecondclasshib.models.User;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
@@ -32,6 +36,10 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import de.hdodenhof.circleimageview.CircleImageView;
 
 public class ProfileFragment extends Fragment {
@@ -40,11 +48,19 @@ public class ProfileFragment extends Fragment {
     private TextView usernameDisplay;
     private TextView emailDisplay;
     private TextInputEditText descriptionEdit;
+    private ChipGroup gamesChipGroup;
     private Button saveButton;
     private FirebaseAuth auth;
     private DatabaseReference userRef;
     private StorageReference storageRef;
     private Uri imageUri;
+
+    // Sample game list - you can replace this with API data
+    private final List<String> availableGames = Arrays.asList(
+            "Minecraft", "Fortnite", "Call of Duty", "GTA V", "League of Legends",
+            "Valorant", "FIFA 23", "Among Us", "Roblox", "Apex Legends",
+            "PUBG", "CS:GO", "Dota 2", "Overwatch", "Red Dead Redemption 2"
+    );
 
     private final ActivityResultLauncher<Intent> pickImage = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -67,12 +83,7 @@ public class ProfileFragment extends Fragment {
         storageRef = FirebaseStorage.getInstance().getReference("profile_images");
 
         // Initialize views
-        profileImage = view.findViewById(R.id.profile_image);
-        editProfileImage = view.findViewById(R.id.edit_profile_image);
-        usernameDisplay = view.findViewById(R.id.username_display);
-        emailDisplay = view.findViewById(R.id.email_display);
-        descriptionEdit = view.findViewById(R.id.description_edit);
-        saveButton = view.findViewById(R.id.save_button);
+        initializeViews(view);
 
         // Load user data
         loadUserData();
@@ -81,7 +92,46 @@ public class ProfileFragment extends Fragment {
         editProfileImage.setOnClickListener(v -> openImagePicker());
         saveButton.setOnClickListener(v -> saveChanges());
 
+        // Setup game chips
+        setupGameChips();
+
         return view;
+    }
+
+    private void initializeViews(View view) {
+        profileImage = view.findViewById(R.id.profile_image);
+        editProfileImage = view.findViewById(R.id.edit_profile_image);
+        usernameDisplay = view.findViewById(R.id.username_display);
+        emailDisplay = view.findViewById(R.id.email_display);
+        descriptionEdit = view.findViewById(R.id.description_edit);
+        gamesChipGroup = view.findViewById(R.id.games_chip_group);
+        saveButton = view.findViewById(R.id.save_button);
+    }
+
+    private void setupGameChips() {
+        gamesChipGroup.removeAllViews();
+
+        for (String game : availableGames) {
+            Chip chip = new Chip(requireContext());
+            chip.setText(game);
+            chip.setCheckable(true);
+            chip.setCheckedIconVisible(true);
+            chip.setCloseIconVisible(false);
+            chip.setChipBackgroundColor(ColorStateList.valueOf(Color.parseColor("#EEEEEE")));
+
+            gamesChipGroup.addView(chip);
+        }
+
+        // Limit selection to 5 games
+        gamesChipGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
+            if (checkedIds.size() > 5) {
+                // Uncheck the last selected chip
+                Chip lastCheckedChip = group.findViewById(checkedIds.get(checkedIds.size() - 1));
+                lastCheckedChip.setChecked(false);
+                Toast.makeText(requireContext(), "You can only select up to 5 games",
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void loadUserData() {
@@ -92,23 +142,31 @@ public class ProfileFragment extends Fragment {
                 if (user != null) {
                     usernameDisplay.setText(user.getUsername());
                     emailDisplay.setText(user.getEmail());
-                    if (user.getDescription() != null) {
-                        descriptionEdit.setText(user.getDescription());
-                    }
+                    descriptionEdit.setText(user.getDescription());
 
-                    // Load profile image if exists
+                    // Load profile image
                     if (user.getImageUrl() != null && !user.getImageUrl().isEmpty()) {
                         Glide.with(requireContext())
                                 .load(user.getImageUrl())
                                 .placeholder(R.drawable.default_profile)
                                 .into(profileImage);
                     }
+
+                    // Set selected games
+                    List<String> favGames = user.getFavGames();
+                    if (favGames != null) {
+                        for (int i = 0; i < gamesChipGroup.getChildCount(); i++) {
+                            Chip chip = (Chip) gamesChipGroup.getChildAt(i);
+                            chip.setChecked(favGames.contains(chip.getText().toString()));
+                        }
+                    }
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(getContext(), "Error loading user data", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Error loading user data",
+                        Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -121,32 +179,44 @@ public class ProfileFragment extends Fragment {
     private void saveChanges() {
         String description = descriptionEdit.getText().toString().trim();
 
+        // Get selected games
+        List<String> selectedGames = new ArrayList<>();
+        for (int i = 0; i < gamesChipGroup.getChildCount(); i++) {
+            Chip chip = (Chip) gamesChipGroup.getChildAt(i);
+            if (chip.isChecked()) {
+                selectedGames.add(chip.getText().toString());
+            }
+        }
+
         if (imageUri != null) {
             // Upload image first
             StorageReference fileRef = storageRef.child(auth.getCurrentUser().getUid());
             fileRef.putFile(imageUri)
                     .addOnSuccessListener(taskSnapshot -> fileRef.getDownloadUrl()
                             .addOnSuccessListener(uri -> {
-                                // Save both image URL and description
-                                updateProfile(description, uri.toString());
+                                // Save all data with image URL
+                                updateProfile(description, uri.toString(), selectedGames);
                             }))
                     .addOnFailureListener(e -> {
                         Toast.makeText(getContext(), "Failed to upload image", Toast.LENGTH_SHORT).show();
-                        // Still save description even if image upload fails
-                        updateProfile(description, null);
+                        // Still save other data even if image upload fails
+                        updateProfile(description, null, selectedGames);
                     });
         } else {
-            // Just save description
-            updateProfile(description, null);
+            // Just save description and games
+            updateProfile(description, null, selectedGames);
         }
     }
 
-    private void updateProfile(String description, String imageUrl) {
+    private void updateProfile(String description, String imageUrl, List<String> favGames) {
+        DatabaseReference ref = userRef;
+
         if (imageUrl != null) {
-            userRef.child("imageUrl").setValue(imageUrl);
+            ref.child("imageUrl").setValue(imageUrl);
         }
 
-        userRef.child("description").setValue(description)
+        ref.child("description").setValue(description);
+        ref.child("favGames").setValue(favGames)
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(getContext(), "Profile updated successfully", Toast.LENGTH_SHORT).show();
                     Navigation.findNavController(requireView()).navigateUp();
