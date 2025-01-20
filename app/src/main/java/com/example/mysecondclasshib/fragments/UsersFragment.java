@@ -2,11 +2,15 @@ package com.example.mysecondclasshib.fragments;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -36,8 +40,17 @@ public class UsersFragment extends Fragment {
     private ValueEventListener usersListener;
 
     @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
+    }
+
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_users, container, false);
+
+        // Set action bar title
+        ((AppCompatActivity) requireActivity()).getSupportActionBar().setTitle("Users");
 
         // Initialize Firebase
         auth = FirebaseAuth.getInstance();
@@ -69,6 +82,34 @@ public class UsersFragment extends Fragment {
         return view;
     }
 
+    @Override
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
+        inflater.inflate(R.menu.menu_users, menu);
+        super.onCreateOptionsMenu(menu, inflater);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        int itemId = item.getItemId();
+
+        if (itemId == R.id.action_profile) {
+            Navigation.findNavController(requireView())
+                    .navigate(R.id.action_users_to_profile);
+            return true;
+        }
+        else if (itemId == R.id.action_logout) {
+            // Sign out from Firebase
+            auth.signOut();
+
+            // Navigate back to login
+            Navigation.findNavController(requireView())
+                    .navigate(R.id.action_users_to_login);
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
     private void loadUsers() {
         usersListener = new ValueEventListener() {
             @Override
@@ -78,12 +119,19 @@ public class UsersFragment extends Fragment {
 
                 for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
                     User user = dataSnapshot.getValue(User.class);
-                    // Add null checks
-                    if (user != null && user.getId() != null
-                            && !currentUserId.equals(user.getId())) {
+                    // Add null checks and exclude current user
+                    if (user != null && user.getId() != null && !currentUserId.equals(user.getId())) {
                         usersList.add(user);
                     }
                 }
+
+                // Sort users: online users first, then by username
+                usersList.sort((user1, user2) -> {
+                    if (user1.isOnline() != user2.isOnline()) {
+                        return user2.isOnline() ? 1 : -1;
+                    }
+                    return user1.getUsername().compareToIgnoreCase(user2.getUsername());
+                });
 
                 adapter.notifyDataSetChanged();
             }
@@ -97,6 +145,7 @@ public class UsersFragment extends Fragment {
 
         usersRef.addValueEventListener(usersListener);
     }
+
     private void updateUserStatus(boolean online) {
         if (auth.getCurrentUser() != null) {
             String userId = auth.getCurrentUser().getUid();
@@ -110,6 +159,18 @@ public class UsersFragment extends Fragment {
 
             userRef.updateChildren(updates);
         }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        updateUserStatus(true);
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        updateUserStatus(false);
     }
 
     @Override

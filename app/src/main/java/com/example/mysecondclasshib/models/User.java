@@ -6,6 +6,7 @@ public class User {
     private String email;
     private String phone;
     private String imageUrl;
+    private String bio;
     private boolean online;
     private String lastSeen;
 
@@ -13,6 +14,14 @@ public class User {
     public User(String userId, String username) {
     }
     public User(){}
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
 
     // Constructor with id, username, and email (used during user registration)
     public User(String id, String username, String email) {
@@ -22,6 +31,7 @@ public class User {
         this.phone = "";
         this.imageUrl = "";
         this.online = false;
+        this.bio="";
         this.lastSeen = String.valueOf(System.currentTimeMillis());
     }
 
