@@ -6,7 +6,7 @@ public class User {
     private String email;
     private String phone;
     private String imageUrl;
-    private String bio;
+    private String description;  // Added description field
     private boolean online;
     private String lastSeen;
 
@@ -15,23 +15,15 @@ public class User {
     }
     public User(){}
 
-    public String getBio() {
-        return bio;
-    }
-
-    public void setBio(String bio) {
-        this.bio = bio;
-    }
-
     // Constructor with id, username, and email (used during user registration)
     public User(String id, String username, String email) {
-        this.id = id != null ? id : "";  // Initialize id with the provided id
+        this.id = id != null ? id : "";
         this.username = username != null ? username : "";
         this.email = email != null ? email : "";
         this.phone = "";
         this.imageUrl = "";
+        this.description = "";  // Initialize description as empty string
         this.online = false;
-        this.bio="";
         this.lastSeen = String.valueOf(System.currentTimeMillis());
     }
 
@@ -54,6 +46,10 @@ public class User {
 
     public String getImageUrl() {
         return imageUrl != null ? imageUrl : "";
+    }
+
+    public String getDescription() {  // Added description getter
+        return description != null ? description : "";
     }
 
     public boolean isOnline() {
@@ -83,6 +79,10 @@ public class User {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl != null ? imageUrl : "";
+    }
+
+    public void setDescription(String description) {  // Added description setter
+        this.description = description != null ? description : "";
     }
 
     public void setOnline(boolean online) {

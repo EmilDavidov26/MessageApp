@@ -10,12 +10,14 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
 
 import com.bumptech.glide.Glide;
 import com.example.mysecondclasshib.R;
@@ -35,7 +37,9 @@ import de.hdodenhof.circleimageview.CircleImageView;
 public class ProfileFragment extends Fragment {
     private CircleImageView profileImage;
     private ImageButton editProfileImage;
-    private TextInputEditText usernameEdit, bioEdit, emailEdit;
+    private TextView usernameDisplay;
+    private TextView emailDisplay;
+    private TextInputEditText descriptionEdit;
     private Button saveButton;
     private FirebaseAuth auth;
     private DatabaseReference userRef;
@@ -58,15 +62,16 @@ public class ProfileFragment extends Fragment {
 
         // Initialize Firebase
         auth = FirebaseAuth.getInstance();
-        userRef = FirebaseDatabase.getInstance().getReference("users").child(auth.getCurrentUser().getUid());
+        userRef = FirebaseDatabase.getInstance().getReference("users")
+                .child(auth.getCurrentUser().getUid());
         storageRef = FirebaseStorage.getInstance().getReference("profile_images");
 
         // Initialize views
         profileImage = view.findViewById(R.id.profile_image);
         editProfileImage = view.findViewById(R.id.edit_profile_image);
-        usernameEdit = view.findViewById(R.id.username_edit);
-        bioEdit = view.findViewById(R.id.bio_edit);
-        emailEdit = view.findViewById(R.id.email_edit);
+        usernameDisplay = view.findViewById(R.id.username_display);
+        emailDisplay = view.findViewById(R.id.email_display);
+        descriptionEdit = view.findViewById(R.id.description_edit);
         saveButton = view.findViewById(R.id.save_button);
 
         // Load user data
@@ -74,7 +79,7 @@ public class ProfileFragment extends Fragment {
 
         // Set click listeners
         editProfileImage.setOnClickListener(v -> openImagePicker());
-        saveButton.setOnClickListener(v -> saveUserData());
+        saveButton.setOnClickListener(v -> saveChanges());
 
         return view;
     }
@@ -85,10 +90,13 @@ public class ProfileFragment extends Fragment {
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 User user = snapshot.getValue(User.class);
                 if (user != null) {
-                    usernameEdit.setText(user.getUsername());
-                    bioEdit.setText(user.getBio());
-                    emailEdit.setText(user.getEmail());
+                    usernameDisplay.setText(user.getUsername());
+                    emailDisplay.setText(user.getEmail());
+                    if (user.getDescription() != null) {
+                        descriptionEdit.setText(user.getDescription());
+                    }
 
+                    // Load profile image if exists
                     if (user.getImageUrl() != null && !user.getImageUrl().isEmpty()) {
                         Glide.with(requireContext())
                                 .load(user.getImageUrl())
@@ -110,33 +118,41 @@ public class ProfileFragment extends Fragment {
         pickImage.launch(intent);
     }
 
-    private void saveUserData() {
-        String username = usernameEdit.getText().toString().trim();
-        String bio = bioEdit.getText().toString().trim();
-        String email = emailEdit.getText().toString().trim();
+    private void saveChanges() {
+        String description = descriptionEdit.getText().toString().trim();
 
-        if (username.isEmpty()) {
-            usernameEdit.setError("Username cannot be empty");
-            return;
-        }
-
-        // Update user data
-        userRef.child("username").setValue(username);
-        userRef.child("bio").setValue(bio);
-        userRef.child("email").setValue(email);
-
-        // Upload new profile image if selected
         if (imageUri != null) {
+            // Upload image first
             StorageReference fileRef = storageRef.child(auth.getCurrentUser().getUid());
             fileRef.putFile(imageUri)
                     .addOnSuccessListener(taskSnapshot -> fileRef.getDownloadUrl()
                             .addOnSuccessListener(uri -> {
-                                userRef.child("imageUrl").setValue(uri.toString());
-                                Toast.makeText(getContext(), "Profile updated successfully", Toast.LENGTH_SHORT).show();
+                                // Save both image URL and description
+                                updateProfile(description, uri.toString());
                             }))
-                    .addOnFailureListener(e -> Toast.makeText(getContext(), "Failed to upload image", Toast.LENGTH_SHORT).show());
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(getContext(), "Failed to upload image", Toast.LENGTH_SHORT).show();
+                        // Still save description even if image upload fails
+                        updateProfile(description, null);
+                    });
         } else {
-            Toast.makeText(getContext(), "Profile updated successfully", Toast.LENGTH_SHORT).show();
+            // Just save description
+            updateProfile(description, null);
         }
+    }
+
+    private void updateProfile(String description, String imageUrl) {
+        if (imageUrl != null) {
+            userRef.child("imageUrl").setValue(imageUrl);
+        }
+
+        userRef.child("description").setValue(description)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(getContext(), "Profile updated successfully", Toast.LENGTH_SHORT).show();
+                    Navigation.findNavController(requireView()).navigateUp();
+                })
+                .addOnFailureListener(e ->
+                        Toast.makeText(getContext(), "Failed to update profile", Toast.LENGTH_SHORT).show()
+                );
     }
 }
