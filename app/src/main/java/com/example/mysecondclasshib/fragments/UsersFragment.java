@@ -36,17 +36,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class UsersFragment extends Fragment {
+public class UsersFragment extends Fragment implements UsersAdapter.OnFriendActionListener {
     private RecyclerView recyclerView;
     private UsersAdapter adapter;
     private List<User> usersList;
-    private List<User> allUsers;  // Store all users for filtering
+    private List<User> allUsers;
     private FirebaseAuth auth;
     private DatabaseReference usersRef;
     private ValueEventListener usersListener;
     private String currentGameFilter = null;
+    private String currentUserId;
 
-    // Sample game list - should match the one in ProfileFragment
     private final List<String> availableGames = Arrays.asList(
             "Minecraft", "Fortnite", "Call of Duty", "GTA V", "League of Legends",
             "Valorant", "FIFA 23", "Among Us", "Roblox", "Apex Legends",
@@ -68,20 +68,26 @@ public class UsersFragment extends Fragment {
 
         // Initialize Firebase
         auth = FirebaseAuth.getInstance();
+        currentUserId = auth.getCurrentUser().getUid();
         usersRef = FirebaseDatabase.getInstance().getReference("users");
 
         // Set up RecyclerView
         recyclerView = view.findViewById(R.id.users_recycler_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         usersList = new ArrayList<>();
-        allUsers = new ArrayList<>();  // Initialize allUsers list
+        allUsers = new ArrayList<>();
 
-        adapter = new UsersAdapter(requireContext(), usersList, user -> {
-            Bundle args = new Bundle();
-            args.putString("userId", user.getId());
-            args.putString("username", user.getUsername());
-            Navigation.findNavController(view).navigate(R.id.action_users_to_chat, args);
-        });
+        adapter = new UsersAdapter(
+                requireContext(),
+                usersList,
+                user -> {
+                    Bundle args = new Bundle();
+                    args.putString("userId", user.getId());
+                    args.putString("username", user.getUsername());
+                    Navigation.findNavController(view).navigate(R.id.action_users_to_chat, args);
+                },
+                this
+        );
 
         recyclerView.setAdapter(adapter);
 
@@ -111,6 +117,11 @@ public class UsersFragment extends Fragment {
         else if (itemId == R.id.action_profile) {
             Navigation.findNavController(requireView())
                     .navigate(R.id.action_users_to_profile);
+            return true;
+        }
+        else if (itemId == R.id.action_friends) {
+            Navigation.findNavController(requireView())
+                    .navigate(R.id.action_users_to_friends);
             return true;
         }
         else if (itemId == R.id.action_logout) {
@@ -149,13 +160,9 @@ public class UsersFragment extends Fragment {
     private void filterUsersByGame(String game) {
         currentGameFilter = game;
         usersList.clear();
-
-        // Filter users who have the selected game
         usersList.addAll(allUsers.stream()
                 .filter(user -> user.getFavGames() != null && user.getFavGames().contains(game))
                 .collect(Collectors.toList()));
-
-        // Sort users: online users first, then by username
         sortUsers();
 
         String message = usersList.isEmpty() ?
@@ -174,9 +181,17 @@ public class UsersFragment extends Fragment {
 
     private void sortUsers() {
         usersList.sort((user1, user2) -> {
+            // First, sort by friend status
+            boolean isFriend1 = user1.getFriends() != null && user1.getFriends().containsKey(currentUserId);
+            boolean isFriend2 = user2.getFriends() != null && user2.getFriends().containsKey(currentUserId);
+            if (isFriend1 != isFriend2) {
+                return isFriend1 ? -1 : 1;
+            }
+            // Then by online status
             if (user1.isOnline() != user2.isOnline()) {
                 return user2.isOnline() ? 1 : -1;
             }
+            // Finally by username
             return user1.getUsername().compareToIgnoreCase(user2.getUsername());
         });
         adapter.notifyDataSetChanged();
@@ -186,7 +201,6 @@ public class UsersFragment extends Fragment {
         usersListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                String currentUserId = auth.getCurrentUser().getUid();
                 allUsers.clear();
                 usersList.clear();
 
@@ -197,7 +211,6 @@ public class UsersFragment extends Fragment {
                     }
                 }
 
-                // Apply current filter if exists, otherwise show all users
                 if (currentGameFilter != null) {
                     filterUsersByGame(currentGameFilter);
                 } else {
@@ -214,6 +227,79 @@ public class UsersFragment extends Fragment {
         };
 
         usersRef.addValueEventListener(usersListener);
+    }
+
+
+    @Override
+    public void onAddFriend(User user) {
+        // Create request data
+        Map<String, Object> updates = new HashMap<>();
+
+        // Add request to the recipient's friendRequests node
+        updates.put("/users/" + user.getId() + "/friendRequests/" + currentUserId, "received");
+        // Add request to sender's friendRequests node to track sent requests
+        updates.put("/users/" + currentUserId + "/friendRequests/" + user.getId(), "sent");
+
+        FirebaseDatabase.getInstance().getReference().updateChildren(updates)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(requireContext(), "Friend request sent", Toast.LENGTH_SHORT).show();
+                    loadUsers();
+                })
+                .addOnFailureListener(e ->
+                        Toast.makeText(requireContext(), "Failed to send request", Toast.LENGTH_SHORT).show()
+                );
+    }
+    @Override
+    public void onAcceptRequest(User user) {
+        Map<String, Object> updates = new HashMap<>();
+        // Add to friends lists
+        updates.put("/users/" + currentUserId + "/friends/" + user.getId(), true);
+        updates.put("/users/" + user.getId() + "/friends/" + currentUserId, true);
+        // Remove request
+        updates.put("/users/" + currentUserId + "/friendRequests/" + user.getId(), null);
+
+        FirebaseDatabase.getInstance().getReference().updateChildren(updates)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(requireContext(), "Friend request accepted", Toast.LENGTH_SHORT).show();
+                    loadUsers();
+                })
+                .addOnFailureListener(e ->
+                        Toast.makeText(requireContext(), "Failed to accept request", Toast.LENGTH_SHORT).show()
+                );
+    }
+
+    @Override
+    public void onRemoveFriend(User user) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("/users/" + currentUserId + "/friends/" + user.getId(), null);
+        updates.put("/users/" + user.getId() + "/friends/" + currentUserId, null);
+
+        FirebaseDatabase.getInstance().getReference().updateChildren(updates)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(requireContext(), "Friend removed", Toast.LENGTH_SHORT).show();
+                    loadUsers();
+                })
+                .addOnFailureListener(e ->
+                        Toast.makeText(requireContext(), "Failed to remove friend", Toast.LENGTH_SHORT).show()
+                );
+    }
+
+    @Override
+    public void onCancelRequest(User user) {
+        // Remove the sent friend request
+        DatabaseReference requestRef = usersRef
+                .child(user.getId())
+                .child("friendRequests")
+                .child(currentUserId);
+
+        requestRef.removeValue()
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(requireContext(), "Friend request cancelled", Toast.LENGTH_SHORT).show();
+                    loadUsers();
+                })
+                .addOnFailureListener(e ->
+                        Toast.makeText(requireContext(), "Failed to cancel request", Toast.LENGTH_SHORT).show()
+                );
     }
 
     private void updateUserStatus(boolean online) {

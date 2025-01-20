@@ -56,6 +56,11 @@
             app:exitAnim="@anim/nav_default_exit_anim"
             app:popUpTo="@id/loginFragment"
             app:popUpToInclusive="true" />
+        <action
+            android:id="@+id/action_users_to_friends"
+            app:destination="@id/friendsFragment"
+            app:enterAnim="@anim/nav_default_enter_anim"
+            app:exitAnim="@anim/nav_default_exit_anim" />
     </fragment>
 
     <fragment
@@ -84,6 +89,15 @@
             app:destination="@id/usersFragment"
             app:popUpTo="@id/usersFragment"
             app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/friendsFragment"
+        android:name="com.example.mysecondclasshib.fragments.FriendsFragment"
+        android:label="Friends">
+        <action
+            android:id="@+id/action_friends_to_chat"
+            app:destination="@id/chatFragment" />
     </fragment>
 
 </navigation>

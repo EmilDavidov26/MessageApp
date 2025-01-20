@@ -18,4 +18,9 @@
         android:id="@+id/action_logout"
         android:title="Logout"
         app:showAsAction="never"/>
+    <item
+        android:id="@+id/action_friends"
+        android:icon="@drawable/ic_friends"
+        android:title="Friends"
+        app:showAsAction="ifRoom"/>
 </menu>
