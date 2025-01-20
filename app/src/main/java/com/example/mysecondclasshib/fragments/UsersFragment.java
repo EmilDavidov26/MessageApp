@@ -1,5 +1,6 @@
 package com.example.mysecondclasshib.fragments;
 
+import android.app.Dialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -7,6 +8,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -17,6 +19,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.mysecondclasshib.R;
+import com.example.mysecondclasshib.adapters.GameSelectionAdapter;
 import com.example.mysecondclasshib.adapters.UsersAdapter;
 import com.example.mysecondclasshib.models.User;
 import com.google.firebase.auth.FirebaseAuth;
@@ -27,17 +30,28 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class UsersFragment extends Fragment {
     private RecyclerView recyclerView;
     private UsersAdapter adapter;
     private List<User> usersList;
+    private List<User> allUsers;  // Store all users for filtering
     private FirebaseAuth auth;
     private DatabaseReference usersRef;
     private ValueEventListener usersListener;
+    private String currentGameFilter = null;
+
+    // Sample game list - should match the one in ProfileFragment
+    private final List<String> availableGames = Arrays.asList(
+            "Minecraft", "Fortnite", "Call of Duty", "GTA V", "League of Legends",
+            "Valorant", "FIFA 23", "Among Us", "Roblox", "Apex Legends",
+            "PUBG", "CS:GO", "Dota 2", "Overwatch", "Red Dead Redemption 2"
+    );
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -60,15 +74,13 @@ public class UsersFragment extends Fragment {
         recyclerView = view.findViewById(R.id.users_recycler_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         usersList = new ArrayList<>();
+        allUsers = new ArrayList<>();  // Initialize allUsers list
 
         adapter = new UsersAdapter(requireContext(), usersList, user -> {
-            // Handle user click - open chat using Navigation
             Bundle args = new Bundle();
             args.putString("userId", user.getId());
             args.putString("username", user.getUsername());
-
-            Navigation.findNavController(view)
-                    .navigate(R.id.action_users_to_chat, args);
+            Navigation.findNavController(view).navigate(R.id.action_users_to_chat, args);
         });
 
         recyclerView.setAdapter(adapter);
@@ -92,16 +104,17 @@ public class UsersFragment extends Fragment {
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int itemId = item.getItemId();
 
-        if (itemId == R.id.action_profile) {
+        if (itemId == R.id.action_search) {
+            showGameSelectionDialog();
+            return true;
+        }
+        else if (itemId == R.id.action_profile) {
             Navigation.findNavController(requireView())
                     .navigate(R.id.action_users_to_profile);
             return true;
         }
         else if (itemId == R.id.action_logout) {
-            // Sign out from Firebase
             auth.signOut();
-
-            // Navigate back to login
             Navigation.findNavController(requireView())
                     .navigate(R.id.action_users_to_login);
             return true;
@@ -110,30 +123,87 @@ public class UsersFragment extends Fragment {
         return super.onOptionsItemSelected(item);
     }
 
+    private void showGameSelectionDialog() {
+        Dialog dialog = new Dialog(requireContext());
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.dialog_game_search);
+
+        RecyclerView gamesRecyclerView = dialog.findViewById(R.id.games_recycler_view);
+        gamesRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
+
+        GameSelectionAdapter gameAdapter = new GameSelectionAdapter(availableGames, game -> {
+            filterUsersByGame(game);
+            dialog.dismiss();
+        });
+
+        gamesRecyclerView.setAdapter(gameAdapter);
+
+        dialog.findViewById(R.id.clear_filter_button).setOnClickListener(v -> {
+            clearGameFilter();
+            dialog.dismiss();
+        });
+
+        dialog.show();
+    }
+
+    private void filterUsersByGame(String game) {
+        currentGameFilter = game;
+        usersList.clear();
+
+        // Filter users who have the selected game
+        usersList.addAll(allUsers.stream()
+                .filter(user -> user.getFavGames() != null && user.getFavGames().contains(game))
+                .collect(Collectors.toList()));
+
+        // Sort users: online users first, then by username
+        sortUsers();
+
+        String message = usersList.isEmpty() ?
+                "No users found playing " + game :
+                "Found " + usersList.size() + " users playing " + game;
+        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+    }
+
+    private void clearGameFilter() {
+        currentGameFilter = null;
+        usersList.clear();
+        usersList.addAll(allUsers);
+        sortUsers();
+        Toast.makeText(requireContext(), "Filter cleared", Toast.LENGTH_SHORT).show();
+    }
+
+    private void sortUsers() {
+        usersList.sort((user1, user2) -> {
+            if (user1.isOnline() != user2.isOnline()) {
+                return user2.isOnline() ? 1 : -1;
+            }
+            return user1.getUsername().compareToIgnoreCase(user2.getUsername());
+        });
+        adapter.notifyDataSetChanged();
+    }
+
     private void loadUsers() {
         usersListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                usersList.clear();
                 String currentUserId = auth.getCurrentUser().getUid();
+                allUsers.clear();
+                usersList.clear();
 
                 for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
                     User user = dataSnapshot.getValue(User.class);
-                    // Add null checks and exclude current user
                     if (user != null && user.getId() != null && !currentUserId.equals(user.getId())) {
-                        usersList.add(user);
+                        allUsers.add(user);
                     }
                 }
 
-                // Sort users: online users first, then by username
-                usersList.sort((user1, user2) -> {
-                    if (user1.isOnline() != user2.isOnline()) {
-                        return user2.isOnline() ? 1 : -1;
-                    }
-                    return user1.getUsername().compareToIgnoreCase(user2.getUsername());
-                });
-
-                adapter.notifyDataSetChanged();
+                // Apply current filter if exists, otherwise show all users
+                if (currentGameFilter != null) {
+                    filterUsersByGame(currentGameFilter);
+                } else {
+                    usersList.addAll(allUsers);
+                    sortUsers();
+                }
             }
 
             @Override
