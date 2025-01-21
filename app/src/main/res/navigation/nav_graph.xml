@@ -100,4 +100,6 @@
             app:destination="@id/chatFragment" />
     </fragment>
 
+
+
 </navigation>

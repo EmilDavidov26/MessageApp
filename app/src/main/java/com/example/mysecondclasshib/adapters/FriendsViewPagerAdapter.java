@@ -4,7 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
-import com.example.mysecondclasshib.fragments.FriendListFragment;
+import com.example.mysecondclasshib.fragments.FriendsListFragment;
 import com.example.mysecondclasshib.fragments.FriendRequestsFragment;
 
 public class FriendsViewPagerAdapter extends FragmentStateAdapter {
@@ -16,7 +16,7 @@ public class FriendsViewPagerAdapter extends FragmentStateAdapter {
     @NonNull
     @Override
     public Fragment createFragment(int position) {
-        return position == 0 ? new FriendListFragment() : new FriendRequestsFragment();
+        return position == 0 ? new FriendsListFragment() : new FriendRequestsFragment();
     }
 
     @Override
