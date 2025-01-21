@@ -232,13 +232,12 @@ public class UsersFragment extends Fragment implements UsersAdapter.OnFriendActi
 
     @Override
     public void onAddFriend(User user) {
-        // Create request data
         Map<String, Object> updates = new HashMap<>();
 
-        // Add request to the recipient's friendRequests node
-        updates.put("/users/" + user.getId() + "/friendRequests/" + currentUserId, "received");
-        // Add request to sender's friendRequests node to track sent requests
-        updates.put("/users/" + currentUserId + "/friendRequests/" + user.getId(), "sent");
+        // For the receiver, store it as a received request
+        updates.put("/users/" + user.getId() + "/friendRequests/" + currentUserId, "sent");
+        // For the sender, store it as a sent request
+        updates.put("/users/" + currentUserId + "/friendRequests/" + user.getId(), "received");
 
         FirebaseDatabase.getInstance().getReference().updateChildren(updates)
                 .addOnSuccessListener(aVoid -> {
@@ -255,13 +254,15 @@ public class UsersFragment extends Fragment implements UsersAdapter.OnFriendActi
         // Add to friends lists
         updates.put("/users/" + currentUserId + "/friends/" + user.getId(), true);
         updates.put("/users/" + user.getId() + "/friends/" + currentUserId, true);
-        // Remove request
+
+        // Remove friend requests
         updates.put("/users/" + currentUserId + "/friendRequests/" + user.getId(), null);
+        updates.put("/users/" + user.getId() + "/friendRequests/" + currentUserId, null);
 
         FirebaseDatabase.getInstance().getReference().updateChildren(updates)
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(requireContext(), "Friend request accepted", Toast.LENGTH_SHORT).show();
-                    loadUsers();
+                    loadUsers(); // Refresh the users list
                 })
                 .addOnFailureListener(e ->
                         Toast.makeText(requireContext(), "Failed to accept request", Toast.LENGTH_SHORT).show()

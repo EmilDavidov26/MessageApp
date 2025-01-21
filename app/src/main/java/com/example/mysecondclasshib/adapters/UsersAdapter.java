@@ -14,6 +14,11 @@ import com.bumptech.glide.Glide;
 import com.example.mysecondclasshib.R;
 import com.example.mysecondclasshib.models.User;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.List;
 
@@ -98,28 +103,60 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
     }
 
     private void updateFriendButton(Button button, User user) {
-        // Check if users are already friends
+        // First check if users are already friends
         if (user.isFriend(currentUserId)) {
             button.setText("Friends");
             button.setOnClickListener(v -> friendListener.onRemoveFriend(user));
         }
-        // Check friend requests status
-        else if (user.getFriendRequests().containsKey(currentUserId)) {
-            String requestStatus = (String) user.getFriendRequests().get(currentUserId);
-            if ("received".equals(requestStatus)) {
-                // This user received a request from currentUser
-                button.setText("Pending");
-                button.setOnClickListener(v -> friendListener.onCancelRequest(user));
-            } else if ("sent".equals(requestStatus)) {
-                // This user sent a request to currentUser
-                button.setText("Accept");
-                button.setOnClickListener(v -> friendListener.onAcceptRequest(user));
-            }
-        }
-        // No relationship exists
         else {
-            button.setText("Add Friend");
-            button.setOnClickListener(v -> friendListener.onAddFriend(user));
+            // Check if there are any pending requests
+            DatabaseReference requestRef = FirebaseDatabase.getInstance().getReference("users");
+
+            // First check if we received a request from this user
+            requestRef.child(currentUserId)
+                    .child("friendRequests")
+                    .child(user.getId())
+                    .addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot snapshot) {
+                            if (snapshot.exists() && "sent".equals(snapshot.getValue(String.class))) {
+                                // We received a request from this user
+                                button.setText("Accept");
+                                button.setOnClickListener(v -> friendListener.onAcceptRequest(user));
+                            } else {
+                                // Check if we sent a request to this user
+                                requestRef.child(user.getId())
+                                        .child("friendRequests")
+                                        .child(currentUserId)
+                                        .addListenerForSingleValueEvent(new ValueEventListener() {
+                                            @Override
+                                            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                                if (snapshot.exists() && "sent".equals(snapshot.getValue(String.class))) {
+                                                    // We sent a request to this user
+                                                    button.setText("Pending");
+                                                    button.setOnClickListener(v -> friendListener.onCancelRequest(user));
+                                                } else {
+                                                    // No request exists
+                                                    button.setText("Add Friend");
+                                                    button.setOnClickListener(v -> friendListener.onAddFriend(user));
+                                                }
+                                            }
+
+                                            @Override
+                                            public void onCancelled(@NonNull DatabaseError error) {
+                                                button.setText("Add Friend");
+                                                button.setOnClickListener(v -> friendListener.onAddFriend(user));
+                                            }
+                                        });
+                            }
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+                            button.setText("Add Friend");
+                            button.setOnClickListener(v -> friendListener.onAddFriend(user));
+                        }
+                    });
         }
     }
 

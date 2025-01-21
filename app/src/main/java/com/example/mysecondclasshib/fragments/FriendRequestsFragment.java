@@ -14,7 +14,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.mysecondclasshib.R;
-import com.example.mysecondclasshib.adapters.UsersAdapter;
+import com.example.mysecondclasshib.adapters.FriendRequestsAdapter;
 import com.example.mysecondclasshib.models.User;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
@@ -28,10 +28,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class FriendRequestsFragment extends Fragment implements UsersAdapter.OnFriendActionListener {
+public class FriendRequestsFragment extends Fragment implements FriendRequestsAdapter.OnRequestActionListener {
     private static final String TAG = "FriendRequestsFragment";
     private RecyclerView recyclerView;
-    private UsersAdapter adapter;
+    private FriendRequestsAdapter adapter;
     private List<User> requestsList;
     private TextView emptyView;
     private DatabaseReference usersRef;
@@ -51,7 +51,7 @@ public class FriendRequestsFragment extends Fragment implements UsersAdapter.OnF
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         requestsList = new ArrayList<>();
 
-        adapter = new UsersAdapter(requireContext(), requestsList, user -> {}, this);
+        adapter = new FriendRequestsAdapter(requireContext(), requestsList, this);
         recyclerView.setAdapter(adapter);
 
         loadFriendRequests();
@@ -63,37 +63,25 @@ public class FriendRequestsFragment extends Fragment implements UsersAdapter.OnF
         Log.d(TAG, "Loading friend requests for user: " + currentUserId);
         DatabaseReference userRef = usersRef.child(currentUserId);
 
-        requestsListener = userRef.addValueEventListener(new ValueEventListener() {
+        requestsListener = userRef.child("friendRequests").addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                User currentUser = snapshot.getValue(User.class);
                 requestsList.clear();
 
-                if (currentUser == null || currentUser.getFriendRequests() == null ||
-                        currentUser.getFriendRequests().isEmpty()) {
+                if (!snapshot.exists() || !snapshot.hasChildren()) {
                     showEmptyView();
                     return;
                 }
 
-                Map<String, Object> requests = currentUser.getFriendRequests();
-                for (Map.Entry<String, Object> entry : requests.entrySet()) {
-                    String userId = entry.getKey();
-                    Object value = entry.getValue();
-
-                    // If the value is a HashMap, it might contain a "status" field
-                    String status = null;
-                    if (value instanceof Map) {
-                        Map<String, Object> requestData = (Map<String, Object>) value;
-                        if (requestData.containsKey("status")) {
-                            status = (String) requestData.get("status");
-                        }
-                    } else if (value instanceof String) {
-                        status = (String) value;
-                    }
+                // Iterate through friend requests
+                for (DataSnapshot requestSnapshot : snapshot.getChildren()) {
+                    String senderId = requestSnapshot.getKey();
+                    String requestType = requestSnapshot.getValue(String.class);
 
                     // Only load requests that were sent to the current user
-                    if ("sent".equals(status)) {
-                        loadRequesterData(userId);
+                    if (senderId != null && "sent".equals(requestType)) {
+                        // Load the sender's user data
+                        loadRequesterData(senderId);
                     }
                 }
 
@@ -130,14 +118,8 @@ public class FriendRequestsFragment extends Fragment implements UsersAdapter.OnF
     }
 
     @Override
-    public void onAddFriend(User user) {
-        // Not used in requests view
-    }
-
-    @Override
     public void onAcceptRequest(User user) {
         Map<String, Object> updates = new HashMap<>();
-
         // Add to friends lists
         updates.put("/users/" + currentUserId + "/friends/" + user.getId(), true);
         updates.put("/users/" + user.getId() + "/friends/" + currentUserId, true);
@@ -162,9 +144,9 @@ public class FriendRequestsFragment extends Fragment implements UsersAdapter.OnF
     }
 
     @Override
-    public void onRemoveFriend(User user) {
-        // Decline request
+    public void onDeclineRequest(User user) {
         Map<String, Object> updates = new HashMap<>();
+        // Remove friend requests from both users
         updates.put("/users/" + currentUserId + "/friendRequests/" + user.getId(), null);
         updates.put("/users/" + user.getId() + "/friendRequests/" + currentUserId, null);
 
@@ -181,11 +163,6 @@ public class FriendRequestsFragment extends Fragment implements UsersAdapter.OnF
                     Log.e(TAG, "Error declining request: " + e.getMessage());
                     Toast.makeText(requireContext(), "Failed to decline request", Toast.LENGTH_SHORT).show();
                 });
-    }
-
-    @Override
-    public void onCancelRequest(User user) {
-        // Not used in requests view
     }
 
     private void showEmptyView() {
