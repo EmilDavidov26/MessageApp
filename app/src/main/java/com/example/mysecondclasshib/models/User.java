@@ -15,14 +15,11 @@ public class User {
     private List<String> favGames;
     private boolean online;
     private String lastSeen;
-    private Map<String, Object> friends;        // Changed to Object to handle both Boolean and Map
-    private Map<String, Object> friendRequests; // Changed to Object to handle both Boolean and Map
+    private Object friends;        // Changed from Map to Object
+    private Object friendRequests; // Changed from Map to Object
 
-    // Required empty constructor for Firebase
     public User() {
         this.favGames = new ArrayList<>();
-        this.friends = new HashMap<>();
-        this.friendRequests = new HashMap<>();
     }
 
     public User(String id, String username, String email) {
@@ -33,13 +30,10 @@ public class User {
         this.description = "";
         this.bio = "";
         this.favGames = new ArrayList<>();
-        this.friends = new HashMap<>();
-        this.friendRequests = new HashMap<>();
         this.online = false;
         this.lastSeen = String.valueOf(System.currentTimeMillis());
     }
 
-    // Getters
     public String getId() { return id != null ? id : ""; }
     public String getUsername() { return username != null ? username : ""; }
     public String getEmail() { return email != null ? email : ""; }
@@ -53,15 +47,22 @@ public class User {
     public boolean isOnline() { return online; }
     public String getLastSeen() { return lastSeen != null ? lastSeen : ""; }
 
+    @SuppressWarnings("unchecked")
     public Map<String, Object> getFriends() {
-        return friends != null ? friends : new HashMap<>();
+        if (friends instanceof Map) {
+            return (Map<String, Object>) friends;
+        }
+        return new HashMap<>();
     }
 
+    @SuppressWarnings("unchecked")
     public Map<String, Object> getFriendRequests() {
-        return friendRequests != null ? friendRequests : new HashMap<>();
+        if (friendRequests instanceof Map) {
+            return (Map<String, Object>) friendRequests;
+        }
+        return new HashMap<>();
     }
 
-    // Setters
     public void setId(String id) { this.id = id != null ? id : ""; }
     public void setUsername(String username) { this.username = username != null ? username : ""; }
     public void setEmail(String email) { this.email = email != null ? email : ""; }
@@ -71,19 +72,22 @@ public class User {
     public void setFavGames(List<String> favGames) { this.favGames = favGames != null ? favGames : new ArrayList<>(); }
     public void setOnline(boolean online) { this.online = online; }
     public void setLastSeen(String lastSeen) { this.lastSeen = lastSeen != null ? lastSeen : ""; }
-    public void setFriends(Map<String, Object> friends) { this.friends = friends != null ? friends : new HashMap<>(); }
-    public void setFriendRequests(Map<String, Object> requests) { this.friendRequests = requests != null ? requests : new HashMap<>(); }
+    public void setFriends(Object friends) { this.friends = friends; }
+    public void setFriendRequests(Object requests) { this.friendRequests = requests; }
 
-    // Helper methods
     public boolean isFriend(String userId) {
         if (friends == null) return false;
-        Object value = friends.get(userId);
-        return value != null && (value instanceof Boolean ? (Boolean)value : true);
+        if (friends instanceof Map) {
+            return ((Map<?, ?>) friends).containsKey(userId);
+        }
+        return false;
     }
 
     public boolean hasPendingRequest(String userId) {
         if (friendRequests == null) return false;
-        Object value = friendRequests.get(userId);
-        return value != null && (value instanceof Boolean ? (Boolean)value : true);
+        if (friendRequests instanceof Map) {
+            return ((Map<?, ?>) friendRequests).containsKey(userId);
+        }
+        return false;
     }
 }
