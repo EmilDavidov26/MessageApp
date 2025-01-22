@@ -6,12 +6,16 @@ import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.MediaStore;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -23,6 +27,7 @@ import androidx.navigation.Navigation;
 
 import com.bumptech.glide.Glide;
 import com.example.mysecondclasshib.R;
+import com.example.mysecondclasshib.api.GameRepository;
 import com.example.mysecondclasshib.models.User;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
@@ -37,7 +42,6 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import de.hdodenhof.circleimageview.CircleImageView;
@@ -48,19 +52,18 @@ public class ProfileFragment extends Fragment {
     private TextView usernameDisplay;
     private TextView emailDisplay;
     private TextInputEditText descriptionEdit;
+    private TextInputEditText searchEditText;
     private ChipGroup gamesChipGroup;
     private Button saveButton;
     private FirebaseAuth auth;
     private DatabaseReference userRef;
     private StorageReference storageRef;
     private Uri imageUri;
-
-    // Sample game list - you can replace this with API data
-    private final List<String> availableGames = Arrays.asList(
-            "Minecraft", "Fortnite", "Call of Duty", "GTA V", "League of Legends",
-            "Valorant", "FIFA 23", "Among Us", "Roblox", "Apex Legends",
-            "PUBG", "CS:GO", "Dota 2", "Overwatch", "Red Dead Redemption 2"
-    );
+    private GameRepository gameRepository;
+    private List<String> availableGames = new ArrayList<>();
+    private Handler searchHandler = new Handler();
+    private static final long SEARCH_DELAY_MS = 500;
+    private Runnable searchRunnable;
 
     private final ActivityResultLauncher<Intent> pickImage = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -82,6 +85,9 @@ public class ProfileFragment extends Fragment {
                 .child(auth.getCurrentUser().getUid());
         storageRef = FirebaseStorage.getInstance().getReference("profile_images");
 
+        // Initialize game repository
+        gameRepository = new GameRepository();
+
         // Initialize views
         initializeViews(view);
 
@@ -92,8 +98,8 @@ public class ProfileFragment extends Fragment {
         editProfileImage.setOnClickListener(v -> openImagePicker());
         saveButton.setOnClickListener(v -> saveChanges());
 
-        // Setup game chips
-        setupGameChips();
+        // Load games from API and setup chips
+        loadGamesFromApi();
 
         return view;
     }
@@ -104,8 +110,98 @@ public class ProfileFragment extends Fragment {
         usernameDisplay = view.findViewById(R.id.username_display);
         emailDisplay = view.findViewById(R.id.email_display);
         descriptionEdit = view.findViewById(R.id.description_edit);
+        searchEditText = view.findViewById(R.id.search_edit_text);
         gamesChipGroup = view.findViewById(R.id.games_chip_group);
         saveButton = view.findViewById(R.id.save_button);
+
+        setupSearchListener();
+    }
+
+    private void setupSearchListener() {
+        searchEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                searchHandler.removeCallbacks(searchRunnable);
+                searchRunnable = () -> performSearch(s.toString());
+                searchHandler.postDelayed(searchRunnable, SEARCH_DELAY_MS);
+            }
+        });
+    }
+
+    private void performSearch(String query) {
+        ProgressBar progressBar = new ProgressBar(requireContext());
+        gamesChipGroup.removeAllViews();
+        gamesChipGroup.addView(progressBar);
+
+        List<String> selectedGames = new ArrayList<>();
+        for (int i = 0; i < gamesChipGroup.getChildCount(); i++) {
+            View view = gamesChipGroup.getChildAt(i);
+            if (view instanceof Chip && ((Chip) view).isChecked()) {
+                selectedGames.add(((Chip) view).getText().toString());
+            }
+        }
+
+        gameRepository.searchGames(query, 50, new GameRepository.OnGamesFetchedListener() {
+            @Override
+            public void onSuccess(List<String> games) {
+                requireActivity().runOnUiThread(() -> {
+                    availableGames = games;
+                    gamesChipGroup.removeView(progressBar);
+                    setupGameChips();
+
+                    for (int i = 0; i < gamesChipGroup.getChildCount(); i++) {
+                        View view = gamesChipGroup.getChildAt(i);
+                        if (view instanceof Chip) {
+                            Chip chip = (Chip) view;
+                            if (selectedGames.contains(chip.getText().toString())) {
+                                chip.setChecked(true);
+                            }
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                requireActivity().runOnUiThread(() -> {
+                    gamesChipGroup.removeView(progressBar);
+                    Toast.makeText(requireContext(),
+                            "Error searching games: " + error, Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
+
+    private void loadGamesFromApi() {
+        ProgressBar progressBar = new ProgressBar(requireContext());
+        gamesChipGroup.addView(progressBar);
+
+        gameRepository.fetchGames(50, new GameRepository.OnGamesFetchedListener() {
+            @Override
+            public void onSuccess(List<String> games) {
+                requireActivity().runOnUiThread(() -> {
+                    availableGames = games;
+                    gamesChipGroup.removeView(progressBar);
+                    setupGameChips();
+                    loadUserSelectedGames();
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                requireActivity().runOnUiThread(() -> {
+                    gamesChipGroup.removeView(progressBar);
+                    Toast.makeText(requireContext(),
+                            "Error loading games: " + error, Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
     }
 
     private void setupGameChips() {
@@ -122,10 +218,8 @@ public class ProfileFragment extends Fragment {
             gamesChipGroup.addView(chip);
         }
 
-        // Limit selection to 5 games
         gamesChipGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
             if (checkedIds.size() > 5) {
-                // Uncheck the last selected chip
                 Chip lastCheckedChip = group.findViewById(checkedIds.get(checkedIds.size() - 1));
                 lastCheckedChip.setChecked(false);
                 Toast.makeText(requireContext(), "You can only select up to 5 games",
@@ -151,21 +245,44 @@ public class ProfileFragment extends Fragment {
                                 .placeholder(R.drawable.default_profile)
                                 .into(profileImage);
                     }
-
-                    // Set selected games
-                    List<String> favGames = user.getFavGames();
-                    if (favGames != null) {
-                        for (int i = 0; i < gamesChipGroup.getChildCount(); i++) {
-                            Chip chip = (Chip) gamesChipGroup.getChildAt(i);
-                            chip.setChecked(favGames.contains(chip.getText().toString()));
-                        }
-                    }
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
                 Toast.makeText(getContext(), "Error loading user data",
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void loadUserSelectedGames() {
+        userRef.child("favGames").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                List<String> favGames = new ArrayList<>();
+                if (snapshot.exists()) {
+                    for (DataSnapshot gameSnapshot : snapshot.getChildren()) {
+                        String game = gameSnapshot.getValue(String.class);
+                        if (game != null) {
+                            favGames.add(game);
+                        }
+                    }
+                }
+
+                // Set selected games
+                for (int i = 0; i < gamesChipGroup.getChildCount(); i++) {
+                    View view = gamesChipGroup.getChildAt(i);
+                    if (view instanceof Chip) {
+                        Chip chip = (Chip) view;
+                        chip.setChecked(favGames.contains(chip.getText().toString()));
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Toast.makeText(getContext(), "Error loading selected games",
                         Toast.LENGTH_SHORT).show();
             }
         });
@@ -182,9 +299,12 @@ public class ProfileFragment extends Fragment {
         // Get selected games
         List<String> selectedGames = new ArrayList<>();
         for (int i = 0; i < gamesChipGroup.getChildCount(); i++) {
-            Chip chip = (Chip) gamesChipGroup.getChildAt(i);
-            if (chip.isChecked()) {
-                selectedGames.add(chip.getText().toString());
+            View view = gamesChipGroup.getChildAt(i);
+            if (view instanceof Chip) {
+                Chip chip = (Chip) view;
+                if (chip.isChecked()) {
+                    selectedGames.add(chip.getText().toString());
+                }
             }
         }
 

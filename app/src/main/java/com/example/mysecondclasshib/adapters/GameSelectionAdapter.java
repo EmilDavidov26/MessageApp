@@ -4,22 +4,29 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-import com.example.mysecondclasshib.R;
+
+import java.util.ArrayList;
 import java.util.List;
 
 public class GameSelectionAdapter extends RecyclerView.Adapter<GameSelectionAdapter.ViewHolder> {
     private List<String> games;
-    private OnGameSelectedListener listener;
+    private final OnGameSelectedListener listener;
 
     public interface OnGameSelectedListener {
         void onGameSelected(String game);
     }
 
-    public GameSelectionAdapter(List<String> games, OnGameSelectedListener listener) {
-        this.games = games;
+    public GameSelectionAdapter(OnGameSelectedListener listener) {
+        this.games = new ArrayList<>();
         this.listener = listener;
+    }
+
+    public void setGames(List<String> games) {
+        this.games = games;
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -45,9 +52,9 @@ public class GameSelectionAdapter extends RecyclerView.Adapter<GameSelectionAdap
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView textView;
 
-        ViewHolder(View itemView) {
-            super(itemView);
-            textView = itemView.findViewById(android.R.id.text1);
+        ViewHolder(View view) {
+            super(view);
+            textView = view.findViewById(android.R.id.text1);
         }
     }
 }
