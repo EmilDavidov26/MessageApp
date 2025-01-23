@@ -130,6 +130,11 @@ public class UsersFragment extends Fragment implements UsersAdapter.OnFriendActi
                     .navigate(R.id.action_users_to_login);
             return true;
         }
+        else if (itemId == R.id.action_settings) {
+            Navigation.findNavController(requireView())
+                    .navigate(R.id.action_users_to_settings);
+            return true;
+        }
 
         return super.onOptionsItemSelected(item);
     }
