@@ -43,6 +43,18 @@
                 android:maxLines="2"
                 android:ellipsize="end"/>
 
+            <TextView
+                android:id="@+id/last_seen_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/description_text"
+                android:layout_marginStart="8dp"
+                android:drawableStart="@drawable/ic_clock"
+                android:drawablePadding="4dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"
+                android:visibility="gone"/>
+
         </LinearLayout>
 
         <Button

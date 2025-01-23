@@ -412,4 +412,9 @@ public class UsersFragment extends Fragment implements UsersAdapter.OnFriendActi
         }
         updateUserStatus(false);
     }
+    @Override
+    public void onStop() {
+        super.onStop();
+        updateUserStatus(false);
+    }
 }

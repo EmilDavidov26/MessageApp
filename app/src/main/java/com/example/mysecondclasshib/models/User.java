@@ -11,12 +11,11 @@ public class User {
     private String email;
     private String imageUrl;
     private String description;
-    private String bio;
     private List<String> favGames;
-    private boolean online;
+    private Boolean online;
     private String lastSeen;
-    private Object friends;        // Changed from Map to Object
-    private Object friendRequests; // Changed from Map to Object
+    private Object friends;
+    private Object friendRequests;
 
     public User() {
         this.favGames = new ArrayList<>();
@@ -42,7 +41,9 @@ public class User {
     }
 
     public List<String> getFavGames() { return favGames != null ? favGames : new ArrayList<>(); }
-    public boolean isOnline() { return online; }
+    public boolean isOnline() {
+        return online != null ? online : false;
+    }
     public String getLastSeen() { return lastSeen != null ? lastSeen : ""; }
 
     @SuppressWarnings("unchecked")

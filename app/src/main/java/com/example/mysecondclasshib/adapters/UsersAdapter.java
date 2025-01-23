@@ -8,6 +8,7 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
@@ -62,10 +63,10 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         User user = usersList.get(position);
 
-        // Set username
+        // Username
         holder.username.setText(user.getUsername());
 
-        // Set description and games
+        // Description + Games
         StringBuilder descriptionBuilder = new StringBuilder();
         if (user.getDescription() != null && !user.getDescription().trim().isEmpty()) {
             descriptionBuilder.append(user.getDescription());
@@ -85,7 +86,7 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
             holder.description.setVisibility(View.GONE);
         }
 
-        // Load profile image
+        // Profile Image
         if (user.getImageUrl() != null && !user.getImageUrl().isEmpty()) {
             Glide.with(context)
                     .load(user.getImageUrl())
@@ -95,24 +96,61 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
             holder.profileImage.setImageResource(R.drawable.default_profile);
         }
 
-        // Set friend button state and click listener
+        // Last Seen
+        if (user.isOnline()) {
+            holder.lastSeen.setVisibility(View.VISIBLE);
+            holder.lastSeen.setText("Online");
+            holder.lastSeen.setTextColor(ContextCompat.getColor(context, R.color.online_green));
+        } else if (user.getLastSeen() != null && !user.getLastSeen().isEmpty()) {
+            try {
+                long lastSeenTime = Long.parseLong(user.getLastSeen());
+                holder.lastSeen.setVisibility(View.VISIBLE);
+                holder.lastSeen.setText("Last seen " + getTimeAgo(lastSeenTime));
+                holder.lastSeen.setTextColor(ContextCompat.getColor(context, android.R.color.darker_gray));
+            } catch (NumberFormatException e) {
+                holder.lastSeen.setVisibility(View.GONE);
+            }
+        } else {
+            holder.lastSeen.setVisibility(View.GONE);
+        }
+
+        // Friend Button
         updateFriendButton(holder.friendButton, user);
 
-        // Set click listener for the whole item
-        holder.itemView.setOnClickListener(v -> listener.onUserClick(user));
+        // Click Listener
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onUserClick(user);
+            }
+        });
+    }
+
+    private String getTimeAgo(long timeInMillis) {
+        long diff = System.currentTimeMillis() - timeInMillis;
+        long seconds = diff / 1000;
+        long minutes = seconds / 60;
+        long hours = minutes / 60;
+        long days = hours / 24;
+
+        if (days > 0) {
+            return days + (days == 1 ? " day ago" : " days ago");
+        } else if (hours > 0) {
+            return hours + (hours == 1 ? " hour ago" : " hours ago");
+        } else if (minutes > 0) {
+            return minutes + (minutes == 1 ? " minute ago" : " minutes ago");
+        } else {
+            return "Just now";
+        }
     }
 
     private void updateFriendButton(Button button, User user) {
-        // First check if users are already friends
         if (user.isFriend(currentUserId)) {
             button.setText("Friends");
             button.setOnClickListener(v -> friendListener.onRemoveFriend(user));
         }
         else {
-            // Check if there are any pending requests
             DatabaseReference requestRef = FirebaseDatabase.getInstance().getReference("users");
 
-            // First check if we received a request from this user
             requestRef.child(currentUserId)
                     .child("friendRequests")
                     .child(user.getId())
@@ -120,11 +158,9 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
                         @Override
                         public void onDataChange(@NonNull DataSnapshot snapshot) {
                             if (snapshot.exists() && "sent".equals(snapshot.getValue(String.class))) {
-                                // We received a request from this user
                                 button.setText("Accept");
                                 button.setOnClickListener(v -> friendListener.onAcceptRequest(user));
                             } else {
-                                // Check if we sent a request to this user
                                 requestRef.child(user.getId())
                                         .child("friendRequests")
                                         .child(currentUserId)
@@ -132,11 +168,9 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
                                             @Override
                                             public void onDataChange(@NonNull DataSnapshot snapshot) {
                                                 if (snapshot.exists() && "sent".equals(snapshot.getValue(String.class))) {
-                                                    // We sent a request to this user
                                                     button.setText("Pending");
                                                     button.setOnClickListener(v -> friendListener.onCancelRequest(user));
                                                 } else {
-                                                    // No request exists
                                                     button.setText("Add Friend");
                                                     button.setOnClickListener(v -> friendListener.onAddFriend(user));
                                                 }
@@ -169,6 +203,7 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
         CircleImageView profileImage;
         TextView username;
         TextView description;
+        TextView lastSeen;
         Button friendButton;
 
         public ViewHolder(@NonNull View itemView) {
@@ -176,6 +211,7 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
             profileImage = itemView.findViewById(R.id.profile_image);
             username = itemView.findViewById(R.id.username_text);
             description = itemView.findViewById(R.id.description_text);
+            lastSeen = itemView.findViewById(R.id.last_seen_text);
             friendButton = itemView.findViewById(R.id.friend_button);
         }
     }

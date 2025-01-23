@@ -12,5 +12,5 @@
     <color name="primary_light">#42A5F5</color>
     <color name="text_primary">#212121</color>
     <color name="text_secondary">#757575</color>
-
+    <color name="online_green">#4CAF50</color>
 </resources>
