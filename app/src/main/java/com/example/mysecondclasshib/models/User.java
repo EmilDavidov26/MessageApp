@@ -28,7 +28,6 @@ public class User {
         this.email = email != null ? email : "";
         this.imageUrl = "";
         this.description = "";
-        this.bio = "";
         this.favGames = new ArrayList<>();
         this.online = false;
         this.lastSeen = String.valueOf(System.currentTimeMillis());
@@ -39,10 +38,9 @@ public class User {
     public String getEmail() { return email != null ? email : ""; }
     public String getImageUrl() { return imageUrl != null ? imageUrl : ""; }
     public String getDescription() {
-        if (description != null && !description.isEmpty()) return description;
-        return bio != null ? bio : "";
+        return description != null ? description : "";
     }
-    public String getBio() { return bio != null ? bio : ""; }
+
     public List<String> getFavGames() { return favGames != null ? favGames : new ArrayList<>(); }
     public boolean isOnline() { return online; }
     public String getLastSeen() { return lastSeen != null ? lastSeen : ""; }
@@ -68,7 +66,7 @@ public class User {
     public void setEmail(String email) { this.email = email != null ? email : ""; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl != null ? imageUrl : ""; }
     public void setDescription(String description) { this.description = description != null ? description : ""; }
-    public void setBio(String bio) { this.bio = bio != null ? bio : ""; }
+
     public void setFavGames(List<String> favGames) { this.favGames = favGames != null ? favGames : new ArrayList<>(); }
     public void setOnline(boolean online) { this.online = online; }
     public void setLastSeen(String lastSeen) { this.lastSeen = lastSeen != null ? lastSeen : ""; }
