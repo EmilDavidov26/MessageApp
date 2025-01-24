@@ -1,10 +1,13 @@
 package com.example.mysecondclasshib.models;
 
+import com.google.firebase.database.IgnoreExtraProperties;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@IgnoreExtraProperties
 public class User {
     private String id;
     private String username;
@@ -20,6 +23,7 @@ public class User {
     public User() {
         this.favGames = new ArrayList<>();
     }
+
 
     public User(String id, String username, String email) {
         this.id = id != null ? id : "";

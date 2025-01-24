@@ -66,7 +66,7 @@ public class ChatFragment extends Fragment {
         recyclerView.setLayoutManager(layoutManager);
 
         messagesList = new ArrayList<>();
-        adapter = new ChatAdapter(getContext(),messagesList);
+        adapter = new ChatAdapter(getContext(),messagesList,currentUserId);
         recyclerView.setAdapter(adapter);
 
         // Set up Firebase
