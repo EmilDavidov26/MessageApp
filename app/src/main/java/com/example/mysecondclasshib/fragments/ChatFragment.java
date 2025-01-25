@@ -130,7 +130,7 @@ public class ChatFragment extends Fragment {
                     chatRef.child(messageId).setValue(message)
                             .addOnSuccessListener(aVoid -> {
                                 messageInput.setText("");
-                                sendNotification(msg);
+                                //sendNotification(msg);
                             })
                             .addOnFailureListener(e -> {
                                 Toast.makeText(getContext(), "Failed to send message", Toast.LENGTH_SHORT).show();
@@ -156,10 +156,6 @@ public class ChatFragment extends Fragment {
                 user1 + "_" + user2 : user2 + "_" + user1;
     }
 
-    private void sendNotification(String message) {
-        // Implement push notification logic here
-        // You'll need Firebase Cloud Messaging for this
-    }
 
     @Override
     public void onDestroy() {

@@ -1,4 +1,3 @@
-/***** GameApiService.java *****/
 package com.example.mysecondclasshib.api;
 
 import retrofit2.Call;

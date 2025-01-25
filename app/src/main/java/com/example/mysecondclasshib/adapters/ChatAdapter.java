@@ -1,6 +1,5 @@
 package com.example.mysecondclasshib.adapters;
 
-import android.annotation.SuppressLint;
 import com.example.mysecondclasshib.models.Message;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,7 +11,6 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.mysecondclasshib.R;
-import com.google.firebase.auth.FirebaseAuth;
 
 
 import java.text.SimpleDateFormat;
@@ -20,7 +18,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-// ChatAdapter.java
+
 public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
     private Context context;
     private List<Message> messages;

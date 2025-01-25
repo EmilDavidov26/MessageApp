@@ -1,4 +1,3 @@
-/***** GameResponse.java *****/
 package com.example.mysecondclasshib.api;
 
 import com.google.gson.annotations.SerializedName;

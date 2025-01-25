@@ -24,9 +24,6 @@ import java.util.Set;
 import de.hdodenhof.circleimageview.CircleImageView;
 
 
-import de.hdodenhof.circleimageview.CircleImageView;
-
-
 public class FriendSelectionAdapter extends RecyclerView.Adapter<FriendSelectionAdapter.ViewHolder> {
     private Context mContext;
     private List<User> friends;

@@ -60,7 +60,6 @@ public class FriendRequestsFragment extends Fragment implements FriendRequestsAd
     }
 
     private void loadFriendRequests() {
-        Log.d(TAG, "Loading friend requests for user: " + currentUserId);
         DatabaseReference userRef = usersRef.child(currentUserId);
 
         requestsListener = userRef.child("friendRequests").addValueEventListener(new ValueEventListener() {
