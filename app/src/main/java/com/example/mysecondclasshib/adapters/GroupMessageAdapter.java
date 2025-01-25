@@ -4,10 +4,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.example.mysecondclasshib.R;
 import com.example.mysecondclasshib.models.GroupMessage;
 import com.example.mysecondclasshib.models.User;
@@ -16,8 +14,6 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.google.firebase.database.core.Context;
-
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -61,7 +57,7 @@ public class GroupMessageAdapter extends RecyclerView.Adapter<GroupMessageAdapte
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 User user = snapshot.getValue(User.class);
                 if (user != null) {
-                    holder.senderName.setText(user.getUsername());
+                    holder.messageSender.setText(user.getUsername());
                 }
             }
 
@@ -84,16 +80,16 @@ public class GroupMessageAdapter extends RecyclerView.Adapter<GroupMessageAdapte
         return messages.get(position).getSenderId().equals(currentUserId) ? MSG_TYPE_RIGHT : MSG_TYPE_LEFT;
     }
 
-    static class MessageViewHolder extends RecyclerView.ViewHolder {
+    public class MessageViewHolder extends RecyclerView.ViewHolder {
         TextView messageText;
+        TextView messageSender;
         TextView messageTime;
-        TextView senderName;
 
         MessageViewHolder(View itemView) {
             super(itemView);
             messageText = itemView.findViewById(R.id.message_text);
+            messageSender = itemView.findViewById(R.id.message_sender);
             messageTime = itemView.findViewById(R.id.message_time);
-            senderName = itemView.findViewById(R.id.message_sender);
         }
     }
 }

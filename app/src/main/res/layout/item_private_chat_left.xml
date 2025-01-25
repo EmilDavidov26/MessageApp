@@ -13,27 +13,33 @@
         android:maxWidth="240dp">
 
         <TextView
-            android:id="@+id/message_sender"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:textColor="@color/primary"/>
-
-        <TextView
             android:id="@+id/message_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="14sp"
-            android:layout_marginTop="4dp"
             android:textColor="@android:color/black"/>
 
-        <TextView
-            android:id="@+id/message_time"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="10sp"
-            android:layout_marginTop="4dp"
-            android:textColor="@android:color/darker_gray"/>
+            android:orientation="horizontal"
+            android:layout_marginTop="4dp">
+
+            <TextView
+                android:id="@+id/message_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="10sp"
+                android:textColor="@android:color/darker_gray"/>
+
+            <TextView
+                android:id="@+id/seen_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="10sp"
+                android:layout_marginStart="8dp"
+                android:textColor="@android:color/darker_gray"
+                android:visibility="gone"/>
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>

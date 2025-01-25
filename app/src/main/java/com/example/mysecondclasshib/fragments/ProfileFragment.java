@@ -185,12 +185,31 @@ public class ProfileFragment extends Fragment {
         gameRepository.fetchGames(50, new GameRepository.OnGamesFetchedListener() {
             @Override
             public void onSuccess(List<String> games) {
-                requireActivity().runOnUiThread(() -> {
-                    availableGames = games;
-                    gamesChipGroup.removeView(progressBar);
-                    setupGameChips();
-                    loadUserSelectedGames();
-                });
+                if (isAdded()) {
+                    requireActivity().runOnUiThread(() -> {
+                        availableGames = games;
+                        gamesChipGroup.removeView(progressBar);
+                        setupGameChips();
+
+                        List<String> currentlySelectedGames = new ArrayList<>();
+                        for (int i = 0; i < gamesChipGroup.getChildCount(); i++) {
+                            View view = gamesChipGroup.getChildAt(i);
+                            if (view instanceof Chip && ((Chip) view).isChecked()) {
+                                currentlySelectedGames.add(((Chip) view).getText().toString());
+                            }
+                        }
+
+                        for (int i = 0; i < gamesChipGroup.getChildCount(); i++) {
+                            View view = gamesChipGroup.getChildAt(i);
+                            if (view instanceof Chip) {
+                                Chip chip = (Chip) view;
+                                if (currentlySelectedGames.contains(chip.getText().toString())) {
+                                    chip.setChecked(true);
+                                }
+                            }
+                        }
+                    });
+                }
             }
 
             @Override
