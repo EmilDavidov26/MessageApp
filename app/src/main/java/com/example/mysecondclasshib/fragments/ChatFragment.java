@@ -90,6 +90,8 @@ public class ChatFragment extends Fragment {
                 for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
                     Message message = dataSnapshot.getValue(Message.class);
                     if (message != null) {
+                        Log.d("ChatFragment", "Message ID: " + message.getId());
+                        Log.d("ChatFragment", "Message Seen: " + message.isSeen());
                         messagesList.add(message);
                     }
                 }
@@ -146,7 +148,10 @@ public class ChatFragment extends Fragment {
     private void updateMessageSeen() {
         for (Message message : messagesList) {
             if (!message.isSeen() && message.getSenderId().equals(otherUserId)) {
-                chatRef.child(message.getId()).child("seen").setValue(true);
+                String messageId = message.getId();
+                if (messageId != null) {
+                    chatRef.child(messageId).child("seen").setValue(true);
+                }
             }
         }
     }

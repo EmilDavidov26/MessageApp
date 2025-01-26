@@ -1,6 +1,8 @@
 package com.example.mysecondclasshib.adapters;
 
 import com.example.mysecondclasshib.models.Message;
+
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -50,14 +52,9 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
         holder.messageText.setText(message.getMessage());
         holder.messageTime.setText(getFormattedTime(message.getTimestamp()));
 
-        //  null check for seenText
-        if (holder.seenText != null) {
-            if (message.isSeen() && message.getSenderId().equals(currentUserId)) {
-                holder.seenText.setVisibility(View.VISIBLE);
-                holder.seenText.setText("Seen");
-            } else {
-                holder.seenText.setVisibility(View.GONE);
-            }
+        // Only show seen status for sent messages (right layout)
+        if (getItemViewType(position) == MSG_TYPE_RIGHT && holder.seenStatus != null) {
+            holder.seenStatus.setVisibility(message.isSeen() ? View.VISIBLE : View.GONE);
         }
     }
 
@@ -77,19 +74,20 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
 
     @Override
     public int getItemViewType(int position) {
-        return messages.get(position).getSenderId().equals(currentUserId) ? MSG_TYPE_RIGHT : MSG_TYPE_LEFT;
+        return messages.get(position).getSenderId().equals(currentUserId) ?
+                MSG_TYPE_RIGHT : MSG_TYPE_LEFT;
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView messageText;
         TextView messageTime;
-        TextView seenText;
+        TextView seenStatus;
 
         ViewHolder(View itemView) {
             super(itemView);
             messageText = itemView.findViewById(R.id.message_text);
             messageTime = itemView.findViewById(R.id.message_time);
-            seenText = itemView.findViewById(R.id.seen_text);
+            seenStatus = itemView.findViewById(R.id.seen_status);
         }
     }
 }

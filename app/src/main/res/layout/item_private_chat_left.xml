@@ -17,29 +17,16 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="14sp"
+            android:layout_marginTop="0dp"
             android:textColor="@android:color/black"/>
 
-        <LinearLayout
+        <TextView
+            android:id="@+id/message_time"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="4dp">
+            android:textSize="10sp"
+            android:layout_marginTop="4dp"
+            android:textColor="@android:color/darker_gray"/>
 
-            <TextView
-                android:id="@+id/message_time"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="10sp"
-                android:textColor="@android:color/darker_gray"/>
-
-            <TextView
-                android:id="@+id/seen_text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="10sp"
-                android:layout_marginStart="8dp"
-                android:textColor="@android:color/darker_gray"
-                android:visibility="gone"/>
-        </LinearLayout>
     </LinearLayout>
 </LinearLayout>
