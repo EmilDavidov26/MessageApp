@@ -2,7 +2,7 @@ package com.example.mysecondclasshib.adapters;
 
 import com.example.mysecondclasshib.models.Message;
 
-import android.util.Log;
+
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;

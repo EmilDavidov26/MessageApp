@@ -90,8 +90,6 @@ public class ChatFragment extends Fragment {
                 for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
                     Message message = dataSnapshot.getValue(Message.class);
                     if (message != null) {
-                        Log.d("ChatFragment", "Message ID: " + message.getId());
-                        Log.d("ChatFragment", "Message Seen: " + message.isSeen());
                         messagesList.add(message);
                     }
                 }
@@ -118,8 +116,6 @@ public class ChatFragment extends Fragment {
     private void sendMessage() {
         String msg = messageInput.getText().toString().trim();
 
-        // Check if otherUserId is correctly set
-        Log.d("Chat", "Sending message to: " + otherUserId);  // Log the receiver's ID
 
         if (!msg.isEmpty()) {
             if (otherUserId != null && !otherUserId.isEmpty()) {
@@ -139,7 +135,6 @@ public class ChatFragment extends Fragment {
                             });
                 }
             } else {
-                Log.d("Chat", "Error: otherUserId is null or empty");
                 Toast.makeText(getContext(), "Receiver ID is missing", Toast.LENGTH_SHORT).show();
             }
         }

@@ -30,8 +30,10 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
     private List<User> usersList;
     private OnUserClickListener listener;
     private OnFriendActionListener friendListener;
+    private OnUserProfileClickListener profileClickListener;
     private String currentUserId;
 
+    // Interface definitions
     public interface OnUserClickListener {
         void onUserClick(User user);
     }
@@ -43,12 +45,19 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
         void onCancelRequest(User user);
     }
 
-    public UsersAdapter(Context context, List<User> usersList, OnUserClickListener listener,
-                        OnFriendActionListener friendListener) {
+    public interface OnUserProfileClickListener {
+        void onUserProfileClick(User user);
+    }
+
+    public UsersAdapter(Context context, List<User> usersList,
+                        OnUserClickListener listener,
+                        OnFriendActionListener friendListener,
+                        OnUserProfileClickListener profileListener) {
         this.context = context;
         this.usersList = usersList;
         this.listener = listener;
         this.friendListener = friendListener;
+        this.profileClickListener = profileListener;
         this.currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
     }
 
@@ -63,8 +72,13 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         User user = usersList.get(position);
 
-        // Username
+        // Set username and click listener
         holder.username.setText(user.getUsername());
+        holder.username.setOnClickListener(v -> {
+            if (profileClickListener != null) {
+                profileClickListener.onUserProfileClick(user);
+            }
+        });
 
         // Description + Games
         StringBuilder descriptionBuilder = new StringBuilder();
@@ -117,7 +131,7 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
         // Friend Button
         updateFriendButton(holder.friendButton, user);
 
-        // Click Listener
+        // Message Click Listener
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
                 listener.onUserClick(user);
@@ -147,10 +161,8 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
         if (user.isFriend(currentUserId)) {
             button.setText("Friends");
             button.setOnClickListener(v -> friendListener.onRemoveFriend(user));
-        }
-        else {
+        } else {
             DatabaseReference requestRef = FirebaseDatabase.getInstance().getReference("users");
-
             requestRef.child(currentUserId)
                     .child("friendRequests")
                     .child(user.getId())

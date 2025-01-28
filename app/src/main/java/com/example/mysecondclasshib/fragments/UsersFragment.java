@@ -85,7 +85,12 @@ public class UsersFragment extends Fragment implements UsersAdapter.OnFriendActi
                     args.putString("username", user.getUsername());
                     Navigation.findNavController(view).navigate(R.id.action_users_to_chat, args);
                 },
-                this
+                this,
+                user -> {
+                    Bundle args = new Bundle();
+                    args.putString("userId", user.getId());
+                    Navigation.findNavController(view).navigate(R.id.action_users_to_userProfile, args);
+                }
         );
 
         recyclerView.setAdapter(adapter);
