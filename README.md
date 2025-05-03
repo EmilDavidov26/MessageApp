@@ -115,6 +115,6 @@ git clone https://github.com/yourusername/game-connect.git
 
 ## Acknowledgments
 
-- [Firebase](https://firebase.google.com)
-- [RAWG API](https://rawg.io/apidocs)
-- [Material Design](https://material.io)
+- [Firebase](https://firebase.google.com).
+- [RAWG API](https://rawg.io/apidocs).
+- [Material Design](https://material.io).
