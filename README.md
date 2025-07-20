@@ -13,7 +13,7 @@ A real-time Android chat application designed for gamers to connect based on sha
 
 ### Social
 - Friend requests system
-- User search by game preferences
+- User searches by game preferences
 - User profiles with game interests
 - Online/offline status with last seen
 
